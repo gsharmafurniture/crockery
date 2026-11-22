@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crockery Display Unit 3D</title>
+<style>
+:root{--bg:#d9d4ca;--ink:#23211e;--panel:#fbfaf7;--line:#c9c4b8;--acc:#7a5a1e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1f21;--ink:#ece8e0;--panel:#2a2c2f;--line:#45484c;--acc:#e0b866}}
+:root[data-theme="dark"]{--bg:#1d1f21;--ink:#ece8e0;--panel:#2a2c2f;--line:#45484c;--acc:#e0b866}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Helvetica,Arial,sans-serif;overflow:hidden}
+canvas{display:block}
+#ui{position:fixed;left:12px;top:calc(12px + env(safe-area-inset-top,0px));background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;max-width:260px}
+#ui h1{font-size:15px;margin:0 0 2px;font-weight:600}
+#ui p{font-size:12px;margin:0 0 8px;opacity:.75;line-height:1.4}
+#ui button{font:inherit;font-size:12px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:4px;padding:5px 9px;margin:0 4px 4px 0;cursor:pointer}
+#ui button:hover,#ui button.on{border-color:var(--acc);color:var(--acc)}
+#sw button{width:28px;height:28px;border-radius:50%;padding:0;margin:0 6px 0 0;border:2px solid var(--line)}
+#sw button.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
+#cp label{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin:0 0 4px}
+#cp input[type=color]{width:44px;height:26px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer}
+#sig{position:fixed;right:16px;bottom:calc(12px + env(safe-area-inset-bottom,0px));text-align:right;color:var(--ink);opacity:.8;line-height:1.35}
+#sig .nm{font-family:"Segoe Script","Brush Script MT","Snell Roundhand",cursive;font-size:20px}
+#sig .ct{font-size:12px}
+#sig a{color:inherit;text-decoration:none}
+</style>
+</head>
+<body>
+<div id="ui">
+  <h1>Crockery display unit</h1>
+  <p>9 ft wide, 7 ft high. Modules left to right: 2 ft, 2 ft, 2 ft, 3 ft. Drag to orbit, scroll to zoom.</p>
+  <button data-v="persp">3D view</button><button data-v="front">Front</button><button data-v="side">Side</button><br>
+  <button id="spin">Auto-rotate</button><button id="dims" class="on">Dimensions</button><button id="led" class="on">Lights</button>
+  <p style="margin:8px 0 4px">Finish</p><div id="sw"></div>
+  <p style="margin:8px 0 4px">Custom colours</p>
+  <div id="cp">
+    <label>Cabinet body <input type="color" id="cBody"></label>
+    <label>Doors <input type="color" id="cDoor"></label>
+    <label>Handles <input type="color" id="cHandle"></label>
+    <label>Wall <input type="color" id="cWall"></label>
+    <label>Glass frames <input type="color" id="cFrame"></label>
+  </div>
+</div>
+<div id="sig"><div class="nm">Ganesh Sharma</div><div class="ct"><a href="tel:+918502869041">8502869041</a>, <a href="tel:+919887945821">9887945821</a></div><div class="ct"><a href="mailto:gsharmafurniture.jaipur@gmail.com">gsharmafurniture.jaipur@gmail.com</a></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(dark ? 0x1d1f21 : 0xd9d4ca);
+const camera = new THREE.PerspectiveCamera(32, innerWidth/innerHeight, 1, 2000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.target.set(54,42,8); controls.maxPolarAngle = Math.PI/2;
+controls.autoRotateSpeed = 1.2;
+
+scene.add(new THREE.HemisphereLight(0xfff4e0, 0x777068, .7));
+const sun = new THREE.DirectionalLight(0xffffff, .7);
+sun.position.set(-60,160,220); sun.castShadow = true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-150,right:150,top:150,bottom:-150,near:1,far:600});
+scene.add(sun);
+
+// wall and floor
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(500,260), new THREE.MeshStandardMaterial({color:0x948f85, roughness:1}));
+wall.position.set(54,100,-.05); wall.receiveShadow = true; scene.add(wall);
+(function(){
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  for(let i=0;i<8;i++){ const v = Math.floor(Math.random()*24);
+    g.fillStyle = `rgb(${190+v},${150+v},${98+v})`; g.fillRect(0,i*64,512,64);
+    g.fillStyle = 'rgba(90,55,20,.35)'; g.fillRect(0,i*64,512,2);
+    for(let k=0;k<5;k++){ g.fillStyle='rgba(90,55,20,.12)'; g.fillRect(Math.random()*512,i*64+Math.random()*60,Math.random()*160,1.5); }
+    g.fillStyle='rgba(60,35,10,.4)'; g.fillRect(Math.random()*512,i*64,2,64);
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4,3); t.anisotropy = 8;
+  const f = new THREE.Mesh(new THREE.PlaneGeometry(500,300), new THREE.MeshStandardMaterial({map:t, roughness:.55}));
+  f.rotation.x = -Math.PI/2; f.position.set(54,0,110); f.receiveShadow = true; scene.add(f);
+})();
+
+// materials
+const marbleCv = document.createElement('canvas'); marbleCv.width = marbleCv.height = 256;
+(function(){ const g = marbleCv.getContext('2d'); g.fillStyle = '#26302d'; g.fillRect(0,0,256,256);
+  for(let i=0;i<40;i++){ g.strokeStyle = `rgba(210,220,215,${Math.random()*.3})`; g.lineWidth = Math.random()*1.6+.3; g.beginPath();
+    let x = Math.random()*256, y = Math.random()*256; g.moveTo(x,y); for(let k=0;k<5;k++){ x += Math.random()*70-20; y += Math.random()*40-20; g.lineTo(x,y);} g.stroke(); } })();
+const M = {
+  body: new THREE.MeshStandardMaterial({color:0xe0cb98, roughness:.6}),
+  door: new THREE.MeshStandardMaterial({color:0xe9d8ad, roughness:.55}),
+  plinth: new THREE.MeshStandardMaterial({color:0x8a7f66, roughness:.8}),
+  brass: new THREE.MeshStandardMaterial({color:0xc8a45a, roughness:.3, metalness:.85}),
+  marble: new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(marbleCv), roughness:.2}),
+  inner: new THREE.MeshStandardMaterial({color:0xe6c98a, roughness:.8, emissive:0x7a5414, emissiveIntensity:.55}),
+  glass: new THREE.MeshStandardMaterial({color:0xdfeaf0, roughness:.05, transparent:true, opacity:.16, depthWrite:false}),
+  shelf: new THREE.MeshStandardMaterial({color:0xcfe0e0, roughness:.1, transparent:true, opacity:.45, depthWrite:false}),
+  item: new THREE.MeshStandardMaterial({color:0xffffff, roughness:.05, transparent:true, opacity:.4, side:THREE.DoubleSide, depthWrite:false}),
+  wine: new THREE.MeshStandardMaterial({color:0x6a1e1e, roughness:.1, transparent:true, opacity:.7, side:THREE.DoubleSide}),
+  ceramic: new THREE.MeshStandardMaterial({color:0xf1ece0, roughness:.3, side:THREE.DoubleSide}),
+  led: new THREE.MeshBasicMaterial({color:0xffdca0}),
+  frame: new THREE.MeshStandardMaterial({color:0x111111, roughness:.4, metalness:.2}),
+};
+function bx(x,y,z,w,h,d,m,g){ const o = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m);
+  o.position.set(x+w/2,y+h/2,z+d/2); o.castShadow = o.receiveShadow = true; (g||scene).add(o); return o; }
+const pls = [];
+function plight(x,y,z){ const l = new THREE.PointLight(0xffc66e, .55, 50); l.position.set(x,y,z); scene.add(l); pls.push(l); }
+
+// glass door: frame bars + glass pane + brass bar handle
+function gdoor(x,y,w,h,z,fw,hx,hy){
+  bx(x,y,z,fw,h,.75,M.frame); bx(x+w-fw,y,z,fw,h,.75,M.frame);
+  bx(x+fw,y,z,w-2*fw,fw,.75,M.frame); bx(x+fw,y+h-fw,z,w-2*fw,fw,.75,M.frame);
+  bx(x+fw,y+fw,z+.3,w-2*fw,h-2*fw,.15,M.glass).castShadow = false;
+  bx(hx,hy,z+.75,.5,6,.45,M.brass);
+}
+// items
+const gpts = [[0,0],[1.5,0],[1.5,.12],[.18,.3],[.18,3.2],[1,3.8],[1.7,5.2],[1.6,6.8],[1.4,7.2]].map(p=>new THREE.Vector2(p[0],p[1]));
+function wglass(x,y,z){ const m = new THREE.Mesh(new THREE.LatheGeometry(gpts,16), M.item); m.position.set(x,y,z); scene.add(m); }
+function stack(x,y,z,n,r){ for(let i=0;i<n;i++){ const m = new THREE.Mesh(new THREE.CylinderGeometry(r,r*.85,.45,24), M.ceramic); m.position.set(x,y+.25+i*.5,z); m.castShadow = true; scene.add(m);} }
+function plate(x,y,z,r){ const m = new THREE.Mesh(new THREE.CylinderGeometry(r,r,.45,28), M.ceramic); m.rotation.x = Math.PI/2-.12; m.position.set(x,y+r,z); m.castShadow = true; scene.add(m); }
+function bowl(x,y,z,r){ const m = new THREE.Mesh(new THREE.SphereGeometry(r,20,10,0,Math.PI*2,Math.PI/2,Math.PI/2), M.ceramic); m.position.set(x,y+r,z); m.castShadow = true; scene.add(m); }
+function decanter(x,y,z){ const p = [[0,0],[3,0],[3.3,.4],[3,5],[1.2,8.5],[.9,11],[1.1,12]].map(a=>new THREE.Vector2(a[0],a[1])); const m = new THREE.Mesh(new THREE.LatheGeometry(p,20), M.wine); m.position.set(x,y,z); scene.add(m); }
+
+// plinth and crown
+bx(0,0,1,108,3,16,M.plinth);
+bx(0,82,0,72,2,12.6,M.body); bx(72,82,0,36,2,18.6,M.body);
+
+// lower left: three 2 ft modules, drawer + door each
+bx(0,3,0,72,29.5,18,M.body);
+bx(0,32.5,0,72.5,1.5,18.5,M.marble);
+const dh = [21.5,21.5,2.5];
+for(let k=0;k<3;k++){
+  const x = 24*k+.125;
+  bx(x,24.25,18,23.75,8,.75,M.door); bx(x,3.5,18,23.75,20.5,.75,M.door);
+  const kn = new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,.8,16), M.brass);
+  kn.rotation.x = Math.PI/2; kn.position.set(24*k+12,28.5,19.15); scene.add(kn);
+  bx(24*k+dh[k],16,18.75,.5,5.5,.5,M.brass);
+}
+// open niche end panel and flower pot on the counter
+bx(0,34,0,.75,18,12,M.body);
+bx(22,34,5,4.4,4,4.4,new THREE.MeshStandardMaterial({color:0x4d6b52,roughness:.5}));
+for(let i=0;i<6;i++){ const s = new THREE.Mesh(new THREE.SphereGeometry(1.3,10,8), M.ceramic);
+  s.position.set(24.2+Math.cos(i*1.1)*2.2, 40+Math.sin(i*1.7)*2.5, 7.2+Math.sin(i)*1.8); scene.add(s); }
+
+// upper left: three 2 ft glass cabinets, 12 in deep
+bx(0,52,0,72,30,.75,M.inner);
+bx(0,81.25,0,72,.75,12,M.body); bx(0,52,0,72,.75,12,M.body);
+[0,23.6,47.6,71.25].forEach(x=>bx(x,52,0,.75,30,12,M.body));
+const uh = [69.5,69.5,25.5];
+for(let k=0;k<3;k++){
+  const x = 24*k;
+  gdoor(x+.125,52.25,23.75,29.5,12,3,k<2?x+21.2:x+2.3,56);
+  bx(x+.75,64,0,22.5,.4,11,M.shelf).castShadow = false;
+  bx(x+1,80.6,1,22,.3,.6,M.led);
+  plight(x+12,76,6);
+  if(k!==1){ wglass(x+6,64.4,5); wglass(x+12,64.4,6); wglass(x+18,64.4,5); stack(x+8,52.75,6,3,3.6); bowl(x+17,52.75,6,2.6); }
+  else { const t = new THREE.Mesh(new THREE.SphereGeometry(3,16,12), M.brass); t.position.set(x+12,67.5,5); scene.add(t);
+    bowl(x+8,52.75,5,3); bowl(x+16,52.75,5,2.6); stack(x+12,52.75,7,2,3.2); }
+}
+
+// tall 3 ft unit: two glass doors, five glass shelves
+bx(72,3,0,36,79,.75,M.inner);
+bx(72,3,0,.75,79,18,M.body); bx(107.25,3,0,.75,79,18,M.body);
+bx(72,81.25,0,36,.75,18,M.body); bx(72,3,0,36,.75,18,M.body);
+[20,34,48,62,72].forEach(y=>{ bx(72.75,y,.75,34.5,.4,16.5,M.shelf).castShadow = false; bx(73,y-.4,2,34,.25,.5,M.led); });
+bx(73,80.6,2,34,.3,.5,M.led);
+gdoor(72.125,3.25,17.9,78.5,18,2.2,72.125+16.5,40);
+gdoor(90.125,3.25,17.9,78.5,18,2.2,90.125+1,40);
+plight(90,28,9); plight(90,56,9); plight(90,76,9);
+stack(80,34.4,8,4,4.8); stack(99,34.4,8,3,4.2); bowl(99,34.4,8,0.01);
+plate(80,48.4,10,4.8); plate(88,48.4,10,4.8); decanter(100,48.4,8);
+[78,84,96,102].forEach((x,i)=>{ wglass(x,62.4,7+(i%2)); wglass(x+3,72.4,8); });
+bowl(80,20.4,8,3.2); bowl(90,20.4,8,3.2); stack(100,20.4,8,5,4.4);
+
+// dimension annotations
+const dimG = new THREE.Group(); scene.add(dimG);
+const lm = new THREE.LineBasicMaterial({color: dark?0xe0dccf:0x333333});
+const V = a=>new THREE.Vector3(...a);
+function seg(a,b){ dimG.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(a),V(b)]), lm)); }
+function label(txt,pos,sc){
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = dark ? 'rgba(42,44,47,.92)' : 'rgba(251,250,247,.94)'; g.fillRect(0,0,512,128);
+  g.strokeStyle = dark ? '#e0b866' : '#7a5a1e'; g.lineWidth = 4; g.strokeRect(2,2,508,124);
+  g.fillStyle = dark ? '#ece8e0' : '#23211e'; g.font = '600 52px Helvetica, Arial, sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt,256,66);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c), depthTest:false}));
+  s.scale.set(sc||18,(sc||18)/4,1); s.position.set(...pos); s.renderOrder = 10; dimG.add(s);
+}
+function dimH(x0,x1,y,z,txt,sc){ seg([x0,y,z],[x1,y,z]); seg([x0,y-2,z],[x0,y+2,z]); seg([x1,y-2,z],[x1,y+2,z]); label(txt,[(x0+x1)/2,y+(y>1?4:3),z],sc); }
+dimH(0,108,92,0,'9\u2032-0\u2033 (108\u2033)',24);
+[[0,24,'2\u2032-0\u2033'],[24,48,'2\u2032-0\u2033'],[48,72,'2\u2032-0\u2033'],[72,108,'3\u2032-0\u2033']].forEach(a=>dimH(a[0],a[1],.3,30,a[2],14));
+seg([-8,0,0],[-8,84,0]); seg([-10,0,0],[-6,0,0]); seg([-10,84,0],[-6,84,0]);
+label('7\u2032-0\u2033 (84\u2033)',[-22,42,0],24);
+
+// finishes
+const finishes = [
+  {n:'Birch', body:0xe0cb98, door:0xe9d8ad},
+  {n:'Walnut', body:0x6b4a32, door:0x7a5639},
+  {n:'Warm white', body:0xe4e0d6, door:0xefece4},
+  {n:'Sage green', body:0x7b8a74, door:0x8a9884},
+];
+const sw = document.getElementById('sw');
+finishes.forEach((p,i)=>{
+  const b = document.createElement('button'); b.title = p.n; b.setAttribute('aria-label', p.n);
+  b.style.background = '#' + p.door.toString(16).padStart(6,'0');
+  b.onclick = ()=>{ M.body.color.setHex(p.body); M.door.color.setHex(p.door);
+    document.getElementById('cBody').value = '#' + p.body.toString(16).padStart(6,'0');
+    document.getElementById('cDoor').value = '#' + p.door.toString(16).padStart(6,'0');
+    [...sw.children].forEach(x=>x.classList.toggle('on', x===b)); };
+  if(i===0) b.classList.add('on'); sw.appendChild(b);
+});
+
+// free colour pickers (any HTML colour)
+const pick = {cBody:M.body, cDoor:M.door, cHandle:M.brass, cWall:wall.material, cFrame:M.frame};
+Object.keys(pick).forEach(id=>{
+  const el = document.getElementById(id);
+  el.value = '#' + pick[id].color.getHexString();
+  el.oninput = ()=>{ pick[id].color.set(el.value);
+    if(id==='cBody' || id==='cDoor') [...sw.children].forEach(x=>x.classList.remove('on')); };
+});
+
+// views and buttons
+const views = { persp:[[150,80,230],[54,42,8]], front:[[54,45,300],[54,42,8]], side:[[330,45,10],[54,42,8]] };
+let anim = null;
+function go(k){ const v = views[k]; anim = {p:V(v[0]), t:V(v[1]), n:0};
+  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on', b.dataset.v===k)); }
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick = ()=>go(b.dataset.v));
+camera.position.set(...views.persp[0]); document.querySelector('[data-v=persp]').classList.add('on');
+document.getElementById('spin').onclick = e=>{ controls.autoRotate = !controls.autoRotate; e.target.classList.toggle('on', controls.autoRotate); };
+document.getElementById('dims').onclick = e=>{ dimG.visible = !dimG.visible; e.target.classList.toggle('on', dimG.visible); };
+document.getElementById('led').onclick = e=>{ const on = e.target.classList.toggle('on');
+  pls.forEach(l=>l.visible = on); M.led.visible = on; M.inner.emissiveIntensity = on ? .55 : 0; };
+addEventListener('resize', ()=>{ camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+(function loop(){
+  requestAnimationFrame(loop);
+  if(anim){ anim.n += .06; const a = Math.min(anim.n,1), e = a*a*(3-2*a);
+    camera.position.lerp(anim.p, e*.25+.05); controls.target.lerp(anim.t, e*.25+.05); if(anim.n>1.5) anim = null; }
+  controls.update(); renderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>
