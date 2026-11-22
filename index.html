@@ -11,11 +11,12 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Helvetica,Arial,sans-serif;overflow:hidden}
 canvas{display:block}
-#ui{position:fixed;left:12px;top:calc(12px + env(safe-area-inset-top,0px));background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;max-width:260px}
+#ui{position:fixed;left:12px;top:calc(48px + env(safe-area-inset-top,0px));background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;max-width:260px}
 #ui h1{font-size:15px;margin:0 0 2px;font-weight:600}
 #ui p{font-size:12px;margin:0 0 8px;opacity:.75;line-height:1.4}
-#ui button{font:inherit;font-size:12px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:4px;padding:5px 9px;margin:0 4px 4px 0;cursor:pointer}
-#ui button:hover,#ui button.on{border-color:var(--acc);color:var(--acc)}
+#ui button,#panelToggle{font:inherit;font-size:12px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:5px 9px;margin:0 4px 4px 0;cursor:pointer}
+#ui button:hover,#ui button.on,#panelToggle:hover{border-color:var(--acc);color:var(--acc)}
+#panelToggle{position:fixed;left:12px;top:calc(12px + env(safe-area-inset-top,0px));z-index:1}
 #sw button{width:28px;height:28px;border-radius:50%;padding:0;margin:0 6px 0 0;border:2px solid var(--line)}
 #sw button.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
 #cp label{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin:0 0 4px}
@@ -27,13 +28,13 @@ canvas{display:block}
 </style>
 </head>
 <body>
+<button id="panelToggle" type="button" aria-controls="ui" aria-expanded="true">Hide controls</button>
 <div id="ui">
   <h1>Crockery display unit</h1>
   <p>9 ft wide, 7 ft high. Modules left to right: 2 ft, 2 ft, 2 ft, 3 ft. Drag to orbit, scroll to zoom.</p>
   <button data-v="persp">3D view</button><button data-v="front">Front</button><button data-v="side">Side</button><br>
   <button id="spin">Auto-rotate</button><button id="dims" class="on">Dimensions</button><button id="led" class="on">Lights</button>
   <p style="margin:8px 0 4px">Finish</p><div id="sw"></div>
-  <p style="margin:8px 0 4px">Custom colours</p>
   <div id="cp">
     <label>Cabinet body <input type="color" id="cBody"></label>
     <label>Doors <input type="color" id="cDoor"></label>
@@ -218,6 +219,14 @@ Object.keys(pick).forEach(id=>{
   el.oninput = ()=>{ pick[id].color.set(el.value);
     if(id==='cBody' || id==='cDoor') [...sw.children].forEach(x=>x.classList.remove('on')); };
 });
+const panelToggle = document.getElementById('panelToggle');
+const ui = document.getElementById('ui');
+panelToggle.onclick = ()=>{
+  const expanded = panelToggle.getAttribute('aria-expanded') === 'true';
+  panelToggle.setAttribute('aria-expanded', String(!expanded));
+  panelToggle.textContent = expanded ? 'Show controls' : 'Hide controls';
+  ui.hidden = expanded;
+};
 
 // views and buttons
 const views = { persp:[[150,80,230],[54,42,8]], front:[[54,45,300],[54,42,8]], side:[[330,45,10],[54,42,8]] };
